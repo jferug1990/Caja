@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1020">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Caja">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Caja de Entradas — Caba & Norte</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#0b1020;color:#f8fafc;font-family:Arial,sans-serif;padding:12px}
+  #app{max-width:520px;margin:0 auto}
+  h2{margin:0 0 4px;font-size:20px}
+  .sub{color:#94a3b8;font-size:13px;margin-bottom:10px}
+  .card{background:#111827;border:1px solid #1f2937;border-radius:10px;padding:12px;margin-bottom:12px}
+  .row{display:flex;gap:6px;flex-wrap:wrap}
+  .lbl{font-size:12px;color:#94a3b8;margin-bottom:4px}
+  button{cursor:pointer;border-radius:8px;padding:10px 12px;font-size:14px;border:1px solid #334155;background:#1e293b;color:#fff}
+  button.on{background:#10b981;color:#052e16;border-color:#10b981;font-weight:bold}
+  button.ev.on{background:#0284c7;color:#fff;border-color:#0284c7}
+  button.main{width:100%;background:#10b981;color:#052e16;border:none;font-weight:bold;font-size:15px;padding:13px}
+  button.green{background:#065f46;border:none}
+  button.teal{background:#0f766e;border:none;font-weight:bold}
+  button.danger{background:#3f1d2e;color:#fecdd3;border-color:#881337}
+  button.small{padding:6px 10px;font-size:12px}
+  input{width:100%;padding:10px;border-radius:8px;border:1px solid #374151;background:#0b1020;color:#fff;margin-bottom:8px;font-size:15px}
+  .grid5{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:10px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+  #total{font-size:28px;font-weight:bold;color:#34d399;margin-bottom:10px}
+  #vuelto{font-weight:bold;color:#fbbf24;margin-bottom:10px}
+  ul{list-style:none;padding:0;margin:0;font-size:13px}
+  li{padding:6px 0;border-bottom:1px solid #1f2937}
+  .estado{font-size:12px;display:flex;justify-content:space-between;gap:8px;margin-bottom:10px;color:#94a3b8}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;background:#10b981}
+  .dot.off{background:#f59e0b}
+  .banner{background:#422006;border:1px solid #b45309;color:#fde68a;padding:10px;border-radius:8px;font-size:13px;margin-bottom:12px;display:none}
+  #toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#111827;border:1px solid #334155;padding:10px 16px;border-radius:8px;font-size:13px;display:none;z-index:9}
+</style>
+</head>
+<body>
+<div id="app">
+  <h2>Caja de Entradas — Caba & Norte</h2>
+  <div class="sub">Base $140.000 ARS · Funciona sin internet · Datos guardados hasta el cierre de jornada</div>
+  <div class="estado">
+    <span><span id="dot-red" class="dot"></span><span id="txt-red">En línea</span></span>
+    <span id="txt-guardado">Guardado ✔</span>
+    <span id="txt-jornada"></span>
+  </div>
+  <div id="banner" class="banner"></div>
+
+  <div class="row" style="margin-bottom:10px">
+    <button class="teal" onclick="copiarWhatsApp()">Copiar WhatsApp</button>
+    <button onclick="deshacerUltima()">Deshacer última</button>
+    <button class="danger" onclick="cerrarJornada()">Cerrar jornada</button>
+  </div>
+
+  <div class="card">
+    <div style="font-weight:bold;margin-bottom:6px">Comando rápido</div>
+    <input id="cmd" type="text" placeholder="Ej: 1 Caba efe, 2 Norte transf, 1 Caba efe 200k">
+    <button class="main" style="background:#166534;color:#fff;margin-bottom:8px" onclick="procesarComando()">Calcular</button>
+    <div class="row">
+      <button class="green small" onclick="usarFrase('1 Caba efe')">1 Caba efe</button>
+      <button class="green small" onclick="usarFrase('1 Caba efe 200k')">1 Caba efe 200k</button>
+      <button class="small" onclick="usarFrase('1 Norte transf')">1 Norte transf</button>
+      <button class="small" onclick="usarFrase('1 Norte efe')">1 Norte efe</button>
+      <button class="small" onclick="usarFrase('1 Caba transf')">1 Caba transf</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
+      <b style="font-size:12px;letter-spacing:.5px">SELECCIÓN TÁCTIL DIRECTA</b>
+      <div class="row">
+        <button class="small" style="background:#1d4ed8;border:none" onclick="agregarAlCombo('Caba')">+1 Caba al combo</button>
+        <button class="small" style="background:#6d28d9;border:none" onclick="agregarAlCombo('Norte')">+1 Norte al combo</button>
+      </div>
+    </div>
+    <div class="lbl">1. Cantidad de entradas</div>
+    <div class="grid5" id="cants"></div>
+    <div class="lbl">2. Evento</div>
+    <div class="grid2">
+      <button class="ev" id="ev-Caba" onclick="setEvento('Caba')">Caba ($140.000)</button>
+      <button class="ev" id="ev-Norte" onclick="setEvento('Norte')">Norte ($140.000)</button>
+    </div>
+    <div class="lbl">3. Medio de pago</div>
+    <div class="grid2" style="margin-bottom:0">
+      <button id="pg-Efectivo" onclick="setPago('Efectivo')">Efectivo</button>
+      <button id="pg-Transferencia" onclick="setPago('Transferencia')">Transferencia</button>
+      <button id="pg-Crédito" onclick="setPago('Crédito')">Tarj. Crédito</button>
+      <button id="pg-Débito" onclick="setPago('Débito')">Tarj. Débito</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="lbl">VALOR A COBRAR</div>
+    <div id="total">$140.000</div>
+    <div class="lbl">VUELTO / CAMBIO EN EFECTIVO</div>
+    <input id="recibido" type="text" inputmode="text" placeholder="Monto recibido (ej: 200000 o 200k)" oninput="calcularVuelto()">
+    <div class="row" style="margin-bottom:8px">
+      <button class="green small" onclick="montoRapido('justo')">Monto justo</button>
+      <button class="small" onclick="montoRapido(150000)">$150.000</button>
+      <button class="small" onclick="montoRapido(200000)">$200.000</button>
+      <button class="small" onclick="montoRapido(300000)">$300.000</button>
+    </div>
+    <div id="vuelto">Vuelto a entregar: Ingresá monto</div>
+    <button class="main" onclick="registrarVenta()">Registrar Venta</button>
+  </div>
+
+  <div class="card">
+    <div style="font-weight:bold;margin-bottom:8px">Tablero en vivo de caja</div>
+    <div id="resumen" style="font-size:13px;color:#cbd5e1;margin-bottom:4px"></div>
+    <div id="desglose" style="font-size:12px;color:#94a3b8;margin-bottom:8px"></div>
+    <div id="pendientes" style="font-size:12px;color:#fbbf24;margin-bottom:8px"></div>
+    <ul id="lista"></ul>
+  </div>
+
+  <div class="card">
+    <div style="font-weight:bold;margin-bottom:8px">Respaldo</div>
+    <div class="row">
+      <button class="small" onclick="exportarCSV()">Descargar CSV</button>
+      <button class="small" onclick="exportarJSON()">Descargar respaldo</button>
+      <button class="small" onclick="document.getElementById('file-json').click()">Restaurar respaldo</button>
+      <input type="file" id="file-json" accept=".json" style="display:none" onchange="importarJSON(this)">
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+/* ===== CONFIGURACIÓN ===== */
+const PRECIO_BASE = 140000;
+const URL_SHEETS  = ""; // Opcional: pegá acá tu URL /exec de Apps Script. Las ventas se encolan sin internet y se envían al volver la conexión.
+const CLAVE       = "caja_entradas_caba_norte_v2";
+const CLAVE_VIEJA = "caja_entradas_caba_norte_estado_v1";
+const DB_NOMBRE   = "caja_entradas_db";
+
+/* ===== ESTADO ===== */
+let estado = nuevoEstado();
+function hoy(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function nuevoEstado(){
+  return { cantidad:1, evento:"Caba", pago:"Efectivo", combo:[], ventas:[], pendientes:[], jornada:hoy(), inicio:Date.now() };
+}
+
+/* ===== PERSISTENCIA: IndexedDB + localStorage (doble copia) ===== */
+let db = null;
+function abrirDB(){
+  return new Promise(res=>{
+    try{
+      const r = indexedDB.open(DB_NOMBRE,1);
+      r.onupgradeneeded = ()=> r.result.createObjectStore("kv");
+      r.onsuccess = ()=>{ db=r.result; res(true); };
+      r.onerror = ()=> res(false);
+    }catch(e){ res(false); }
+  });
+}
+function idbGet(k){
+  return new Promise(res=>{
+    if(!db) return res(null);
+    try{ const q=db.transaction("kv").objectStore("kv").get(k); q.onsuccess=()=>res(q.result||null); q.onerror=()=>res(null); }catch(e){res(null);}
+  });
+}
+function idbSet(k,v){
+  return new Promise(res=>{
+    if(!db) return res(false);
+    try{ const t=db.transaction("kv","readwrite"); t.objectStore("kv").put(v,k); t.oncomplete=()=>res(true); t.onerror=()=>res(false); }catch(e){res(false);}
+  });
+}
+async function guardar(){
+  const txt = JSON.stringify(estado);
+  let ok = false;
+  try{ localStorage.setItem(CLAVE, txt); ok = true; }catch(e){}
+  if(await idbSet("estado", txt)) ok = true;
+  document.getElementById("txt-guardado").textContent = ok ? "Guardado ✔ "+new Date().toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit",second:"2-digit"}) : "⚠ No se pudo guardar: descargá un respaldo";
+}
+function normalizar(p){
+  const b = nuevoEstado();
+  return {
+    cantidad: p.cantidad||1, evento: p.evento||"Caba", pago: p.pago||"Efectivo",
+    combo: Array.isArray(p.combo)?p.combo:[], ventas: Array.isArray(p.ventas)?p.ventas:[],
+    pendientes: Array.isArray(p.pendientes)?p.pendientes:[],
+    jornada: p.jornada||b.jornada, inicio: p.inicio||b.inicio
+  };
+}
+async function cargar(){
+  await abrirDB();
+  let candidatos = [];
+  try{ const a=localStorage.getItem(CLAVE); if(a) candidatos.push(JSON.parse(a)); }catch(e){}
+  try{ const b=await idbGet("estado"); if(b) candidatos.push(JSON.parse(b)); }catch(e){}
+  try{ const c=localStorage.getItem(CLAVE_VIEJA); if(c && !candidatos.length) candidatos.push(JSON.parse(c)); }catch(e){}
+  if(candidatos.length){
+    // Se queda con la copia que tenga más ventas registradas (la más completa)
+    candidatos.sort((x,y)=>((y.ventas||[]).length)-((x.ventas||[]).length));
+    estado = normalizar(candidatos[0]);
+  }
+  if(navigator.storage && navigator.storage.persist){ try{ navigator.storage.persist(); }catch(e){} }
+}
+
+/* ===== UTILIDADES ===== */
+const ars = n => "$"+Number(n||0).toLocaleString("es-AR");
+function parsearMonto(t){
+  if(!t) return 0;
+  let s=String(t).toLowerCase().replace(/\$/g,"").replace(/\s/g,"").replace(/\./g,"").replace(/,/g,".");
+  if(s.endsWith("k")) return Math.round(parseFloat(s.slice(0,-1))*1000)||0;
+  return Math.round(parseFloat(s))||0;
+}
+function toast(m){ const t=document.getElementById("toast"); t.textContent=m; t.style.display="block"; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display="none",2500); }
+const $ = id => document.getElementById(id);
+
+function totalActual(){ return (estado.combo.length? estado.combo.length : estado.cantidad)*PRECIO_BASE; }
+function descActual(){
+  if(estado.combo.length) return "Combo ("+estado.combo.join(" + ")+")";
+  return estado.cantidad+(estado.cantidad===1?" entrada":" entradas")+" · "+estado.evento;
+}
+
+/* ===== ACCIONES ===== */
+function setCantidad(n){ estado.combo=[]; estado.cantidad=n; ui(); }
+function setEvento(e){ estado.combo=[]; estado.evento=e; ui(); }
+function setPago(p){ estado.pago=p; ui(); }
+function agregarAlCombo(e){ estado.combo.push(e); ui(); }
+function usarFrase(f){ $("cmd").value=f; procesarComando(); }
+
+function procesarComando(){
+  const txt = ($("cmd").value||"").toLowerCase();
+  const partes = txt.trim().split(/\s+/);
+  const ultimo = partes[partes.length-1]||"";
+  const hayMonto = ultimo.endsWith("k") || /^\d{5,}$/.test(ultimo.replace(/\./g,""));
+  // La cantidad es el primer número chico (no el monto recibido)
+  const m = txt.match(/(?:^|\s)(\d{1,2})(?=\s|$)/);
+  if(m){ estado.combo=[]; estado.cantidad=Math.max(1,parseInt(m[1],10)); }
+  if(txt.includes("norte")) estado.evento="Norte";
+  if(txt.includes("caba")) estado.evento="Caba";
+  if(txt.includes("transf")) estado.pago="Transferencia";
+  else if(txt.includes("cred")||txt.includes("tar c")) estado.pago="Crédito";
+  else if(txt.includes("deb")||txt.includes("tar d")) estado.pago="Débito";
+  else if(txt.includes("efe")) estado.pago="Efectivo";
+  if(hayMonto) $("recibido").value=ultimo;
+  ui();
+}
+
+function montoRapido(v){ $("recibido").value = v==="justo" ? totalActual() : v; calcularVuelto(); }
+
+function calcularVuelto(){
+  const total=totalActual(), rec=parsearMonto($("recibido").value), el=$("vuelto");
+  if(!rec){ el.textContent="Vuelto a entregar: Ingresá monto"; return 0; }
+  const v=rec-total;
+  if(v<0){ el.textContent="Faltan "+ars(-v); return 0; }
+  el.textContent="Vuelto a entregar: "+ars(v); return v;
+}
+
+function registrarVenta(){
+  const total=totalActual(), rec=parsearMonto($("recibido").value);
+  if(estado.pago==="Efectivo" && rec && rec<total){
+    if(!confirm("El monto recibido es menor al total (faltan "+ars(total-rec)+"). ¿Registrar igual?")) return;
+  }
+  const vuelto = estado.pago==="Efectivo" && rec>=total ? rec-total : 0;
+  const cant = estado.combo.length? estado.combo.length : estado.cantidad;
+  const venta = {
+    id: Date.now()+"-"+Math.floor(Math.random()*1000),
+    fecha: hoy(),
+    hora: new Date().toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"}),
+    detalle: descActual(), cantidad: cant,
+    evento: estado.combo.length? estado.combo.join("+") : estado.evento,
+    medioPago: estado.pago, monto: total, vuelto: vuelto
+  };
+  estado.ventas.unshift(venta);
+  if(URL_SHEETS) estado.pendientes.push(venta);
+  estado.combo=[]; $("recibido").value="";
+  ui(); toast("Venta registrada"); enviarPendientes();
+}
+
+function deshacerUltima(){
+  if(!estado.ventas.length) return;
+  const v=estado.ventas[0];
+  if(!confirm("¿Eliminar la última venta ("+ars(v.monto)+" · "+v.detalle+")?")) return;
+  estado.ventas.shift();
+  estado.pendientes = estado.pendientes.filter(p=>p.id!==v.id);
+  ui();
+}
+
+/* ===== SINCRONIZACIÓN OPCIONAL CON SHEETS (cola offline) ===== */
+let enviando=false;
+async function enviarPendientes(){
+  if(!URL_SHEETS || enviando || !navigator.onLine || !estado.pendientes.length) return;
+  enviando=true;
+  try{
+    while(estado.pendientes.length && navigator.onLine){
+      const v=estado.pendientes[0];
+      await fetch(URL_SHEETS,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},body:JSON.stringify(v)});
+      estado.pendientes.shift();
+      await guardar();
+    }
+  }catch(e){}
+  enviando=false; ui();
+}
+
+/* ===== EXPORTAR / RESPALDO ===== */
+function descargar(nombre, contenido, tipo){
+  const blob=new Blob([contenido],{type:tipo});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob); a.download=nombre;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},1000);
+}
+function exportarCSV(){
+  const cab=["Fecha","Hora","Detalle","Cantidad","Evento","Medio de pago","Monto","Vuelto"];
+  const filas=[...estado.ventas].reverse().map(v=>[v.fecha||estado.jornada,v.hora,v.detalle,v.cantidad,v.evento,v.medioPago,v.monto,v.vuelto]
+    .map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(";"));
+  descargar("caja_"+estado.jornada+".csv","\uFEFF"+[cab.join(";"),...filas].join("\r\n"),"text/csv;charset=utf-8");
+}
+function exportarJSON(){ descargar("respaldo_caja_"+estado.jornada+".json",JSON.stringify(estado),"application/json"); }
+function importarJSON(inp){
+  const f=inp.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const p=JSON.parse(r.result);
+      if(!confirm("Esto reemplaza los datos actuales por el respaldo ("+(p.ventas||[]).length+" ventas). ¿Continuar?")) return;
+      estado=normalizar(p); ui(); toast("Respaldo restaurado");
+    }catch(e){ alert("El archivo no es un respaldo válido."); }
+    inp.value="";
+  };
+  r.readAsText(f);
+}
+
+/* ===== CIERRE DE JORNADA ===== */
+function resumenTexto(){
+  const tot=estado.ventas.reduce((a,v)=>a+Number(v.monto||0),0);
+  const ent=estado.ventas.reduce((a,v)=>a+Number(v.cantidad||0),0);
+  const porPago={};
+  estado.ventas.forEach(v=>{porPago[v.medioPago]=(porPago[v.medioPago]||0)+Number(v.monto||0);});
+  const l=[
+    "*Caja de Entradas — Caba & Norte*",
+    "Jornada: "+estado.jornada,
+    "Entradas vendidas: "+ent,
+    "Total recaudado: "+ars(tot),
+    ...Object.keys(porPago).map(k=>"  · "+k+": "+ars(porPago[k])),
+    "",
+    ...[...estado.ventas].reverse().map(v=>"• ["+v.hora+"] "+v.detalle+" ("+v.medioPago+"): "+ars(v.monto))
+  ];
+  return l.join("\n");
+}
+function copiarWhatsApp(){
+  const t=resumenTexto();
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(()=>toast("Resumen copiado")).catch(()=>prompt("Copiá el resumen:",t));
+  } else prompt("Copiá el resumen:",t);
+}
+function cerrarJornada(){
+  if(!estado.ventas.length){ alert("No hay ventas para cerrar."); return; }
+  if(estado.pendientes.length && !confirm("Hay "+estado.pendientes.length+" venta(s) sin enviar a Sheets. Si cerrás ahora solo quedarán en el CSV. ¿Continuar?")) return;
+  if(!confirm("CERRAR JORNADA\n\nSe va a descargar el CSV y el respaldo del día, y recién después se borrarán las ventas.\n\n¿Continuar?")) return;
+  exportarCSV();
+  setTimeout(exportarJSON,600);
+  setTimeout(()=>{
+    if(confirm("¿Se descargaron los archivos correctamente?\n\nAceptar = borrar las ventas y empezar una jornada nueva.\nCancelar = conservar todo.")){
+      const copia=resumenTexto();
+      estado=nuevoEstado();
+      ui(); toast("Jornada cerrada. Caja en cero.");
+      try{ navigator.clipboard && navigator.clipboard.writeText(copia); }catch(e){}
+    }
+  },1500);
+}
+
+/* ===== INTERFAZ ===== */
+function ui(){
+  $("cants").innerHTML=[1,2,3,4,5].map(n=>'<button class="'+(estado.combo.length===0&&estado.cantidad===n?"on":"")+'" onclick="setCantidad('+n+')">'+n+'</button>').join("");
+  ["Caba","Norte"].forEach(e=>$("ev-"+e).className="ev"+(estado.combo.length===0&&estado.evento===e?" on":""));
+  ["Efectivo","Transferencia","Crédito","Débito"].forEach(p=>$("pg-"+p).className=estado.pago===p?"on":"");
+  $("total").textContent=ars(totalActual());
+  calcularVuelto();
+
+  const tot=estado.ventas.reduce((a,v)=>a+Number(v.monto||0),0);
+  const ent=estado.ventas.reduce((a,v)=>a+Number(v.cantidad||0),0);
+  $("resumen").textContent="Total recaudado: "+ars(tot)+" · Entradas vendidas: "+ent;
+  const pp={}; estado.ventas.forEach(v=>{pp[v.medioPago]=(pp[v.medioPago]||0)+Number(v.monto||0);});
+  $("desglose").textContent=Object.keys(pp).map(k=>k+": "+ars(pp[k])).join(" · ");
+  $("pendientes").textContent=estado.pendientes.length? "⏳ "+estado.pendientes.length+" venta(s) pendientes de enviar a Sheets":"";
+  $("lista").innerHTML=estado.ventas.map(v=>"<li><strong>"+ars(v.monto)+"</strong> — "+v.detalle+" ("+v.medioPago+")"+(v.vuelto>0?" · Vuelto: "+ars(v.vuelto):"")+" <span style='color:#64748b'>"+v.hora+"</span></li>").join("");
+
+  $("txt-jornada").textContent="Jornada: "+estado.jornada;
+  const b=$("banner");
+  if(estado.jornada!==hoy() && estado.ventas.length){
+    b.style.display="block";
+    b.textContent="⚠ Hay ventas de la jornada "+estado.jornada+" sin cerrar. No se borró nada: tocá «Cerrar jornada» para descargarlas y empezar de cero.";
+  } else b.style.display="none";
+  guardar();
+}
+function red(){ const on=navigator.onLine; $("dot-red").className="dot"+(on?"":" off"); $("txt-red").textContent=on?"En línea":"Sin internet (todo sigue funcionando)"; if(on) enviarPendientes(); }
+window.addEventListener("online",red); window.addEventListener("offline",red);
+window.addEventListener("beforeunload",e=>{ if(estado.ventas.length){ guardar(); } });
+document.addEventListener("visibilitychange",()=>{ if(document.hidden) guardar(); });
+
+
+/* ===== SERVICE WORKER (modo offline) ===== */
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); });
+}
+if(navigator.storage && navigator.storage.persist){ navigator.storage.persist().catch(()=>{}); }
+
+(async function init(){ await cargar(); red(); ui(); })();
+</script>
+</body>
+</html>
